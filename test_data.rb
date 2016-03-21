@@ -369,6 +369,16 @@ class StationsTest < Minitest::Test
     end
   end
 
+  def test_carrier_enabled_is_suggestable
+    STATIONS.each do |row|
+      if valid_carrier(row) &&
+        !row["parent_station_id"] &&
+        !VIRTUAL_STATIONS.include?(row["id"])
+          assert_equal "t", row["is_suggestable"], "Station #{row["id"]} is not suggestable with no parent but has enabled system"
+      end
+    end
+  end
+
   def test_parent_station
     STATIONS.each do |row|
       parent_id = row["parent_station_id"]
