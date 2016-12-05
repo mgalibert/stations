@@ -289,6 +289,16 @@ class StationsTest < Minitest::Test
     end
   end
 
+  def test_parent_should_be_city
+    parent_ids = CHILDREN.keys
+    parent_ids.each do |parent_id|
+      parent_station = STATIONS_BY_ID[parent_id]
+      if parent_station["is_suggestable"] == "t" && !valid_carrier(parent_station)
+        refute_equal parent_station["is_city"], "f", "The parent station (#{parent_id}) has no valid carrier and should be flagged as city"
+      end
+    end
+  end
+
   def test_slugify
     assert_equal slugify("Figueras/Figueres Vilafant Esp."), "figueras-figueres-vilafant-esp"
   end
