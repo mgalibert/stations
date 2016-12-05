@@ -7,8 +7,10 @@ require_relative "lib/constants"
 STATIONS = CSV.read("stations.csv", Constants::CSV_PARAMETERS)
 STATIONS_BY_ID = STATIONS.inject({}) { |hash, station| hash[station["id"]] = station; hash }
 
+ALIASES = {}
 CHILDREN = {}
 CHILDREN_COUNT = Hash.new(0)
+STATIONS.each { |row| ALIASES[row["id"]] = []}
 STATIONS.each { |row| CHILDREN[row["id"]] = [] }
 
 def valid_carrier(row)
@@ -31,6 +33,12 @@ STATIONS.each do |row|
     if valid_carrier(row) == "t"
       CHILDREN_COUNT[row["parent_station_id"]] += 1
     end
+  end
+end
+
+STATIONS.each do |row|
+  if row["same_as"]
+    ALIASES[row["same_as"]] << row
   end
 end
 
@@ -359,6 +367,32 @@ class StationsTest < Minitest::Test
         carrier_ids.each do |carrier_id|
           if row[carrier_id]
             assert !actual_station[carrier_id].nil?, "Actual station #{actual_station["name"]} (#{actual_station["id"]}) has not a #{carrier_id} while its alias #{row["id"]} has one"
+          end
+        end
+      end
+    end
+  end
+
+  def test_station_should_be_same_as
+    STATIONS.each do |row|
+      if row["is_suggestable"] == "f" && 
+        CHILDREN[row["id"]].empty? && 
+        row["parent_station_id"].nil? && 
+        ALIASES[row["id"]].empty? &&
+        row["same_as"].nil?
+        refute STATIONS.any? { |station| row["id"] != station["id"] && row["slug"] == station["slug"] && row["country"] == station["country"] },
+          "Station #{row["name"]} (#{row["id"]}) can be an alias of a station with the same name"
+      end
+    end
+  end
+
+  def test_child_should_be_alias
+    CHILDREN.each do |parent_id, children_stations|
+      parent_station = STATIONS_BY_ID[parent_id]
+      if !children_stations.empty?
+        children_stations.each do |child_station|
+          if child_station["slug"] == parent_station["slug"]
+            assert valid_carrier(child_station), "Child station #{child_station["name"]} (#{child_station["id"]}) has no valid carrier and should be an alias instead"
           end
         end
       end
